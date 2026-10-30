@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Robotic Arm Hand Gesture Controller</title>
+  <style>
+    :root {
+      --bg-dark: #0f141c;
+      --panel-bg: rgba(20, 27, 40, 0.85);
+      --accent: #00d2ff;
+      --accent-glow: rgba(0, 210, 255, 0.4);
+      --accent-orange: #ff9100;
+      --text: #f0f4f8;
+      --text-dim: #94a3b8;
+      --border: rgba(255, 255, 255, 0.1);
+      --card-bg: rgba(255, 255, 255, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Navigation / Status Header */
+    header {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .badge-group {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .glass-badge {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* Left Control & Telemetry Panel */
+    .left-panel {
+      position: absolute;
+      top: 76px;
+      left: 20px;
+      width: 320px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      z-index: 10;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: rgba(0,0,0,0.3);
+      padding: 4px;
+      border-radius: 10px;
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      padding: 7px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      color: #000;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* Joint Gauges */
+    .joint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .joint-row {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: border-color 0.2s;
+    }
+
+    .joint-row.active {
+      border-color: var(--accent);
+      background: rgba(0, 210, 255, 0.08);
+    }
+
+    .joint-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .joint-val {
+      color: var(--accent);
+      font-family: monospace;
+    }
+
+    .joint-bar-bg {
+      width: 100%;
+      height: 5px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .joint-bar-fill {
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(90deg, #00d2ff, #0072ff);
+      transition: width 0.1s linear;
+    }
+
+    /* Right Camera Feed & Gesture Monitor */
+    .right-panel {
+      position: absolute;
+      top: 76px;
+      right: 20px;
+      width: 320px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      z-index: 10;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cam-box {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    #webcam {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #cam-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform: scaleX(-1);
+    }
+
+    .cam-overlay {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.7);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #10b981;
+      font-family: monospace;
+    }
+
+    /* Gesture Display Banner */
+    .gesture-banner {
+      background: rgba(0, 210, 255, 0.12);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .gesture-num {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      text-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .gesture-desc {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Guide / Legend Card */
+    .guide-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-dim);
+    }
+
+    .guide-card b {
+      color: var(--text);
+    }
+
+    /* Bottom Quick Action Bar */
+    .bottom-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .action-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-btn:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: var(--text);
+    }
+
+    .action-btn.active {
+      background: var(--accent-orange);
+      color: #000;
+      border-color: var(--accent-orange);
+    }
+
+    /* Fallback UI for Presentation emergency */
+    .keyboard-hint {
+      position: absolute;
+      bottom: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: rgba(0,0,0,0.6);
+      padding: 4px 12px;
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #loading-indicator {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-dark);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      transition: opacity 0.5s ease;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Three.js + OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- MediaPipe Hands & Camera Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loading-indicator">
+    <div class="spinner"></div>
+    <h3 style="font-weight: 500; letter-spacing: 1px;">INITIALIZING 3D ROBOT KINEMATICS & VISION...</h3>
+  </div>
+
+  <!-- Three.js 3D Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="badge-group">
+      <div class="glass-badge">
+        <div class="status-dot"></div>
+        <span>6-DOF ROBOTIC ARM SIMULATION</span>
+      </div>
+      <div class="glass-badge" style="color: var(--text-dim);">
+        FPS: <span id="fps-counter" style="color: var(--accent); font-family: monospace;">60</span>
+      </div>
+    </div>
+
+    <div class="badge-group">
+      <div class="glass-badge">
+        <span style="color: var(--accent-orange);">●</span>
+        <span>GESTURE CONTROL: <span id="vision-status" style="color: #10b981;">ACTIVE</span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left Telemetry Panel -->
+  <div class="left-panel">
+    <div class="panel-title">
+      <span>KINEMATICS</span>
+      <span style="font-size: 11px; color: var(--text-dim);" id="control-mode-text">PRESET POSES</span>
+    </div>
+
+    <div class="mode-selector">
+      <button class="mode-btn active" id="btn-mode-preset" onclick="setMode('preset')">PRESET POSES</button>
+      <button class="mode-btn" id="btn-mode-joint" onclick="setMode('joint')">JOINT SELECT</button>
+    </div>
+
+    <!-- Joint Angle Gauges -->
+    <div class="joint-list">
+      <div class="joint-row" id="gauge-j1">
+        <div class="joint-header">
+          <span>J1: Base (Yaw)</span>
+          <span class="joint-val" id="val-j1">0°</span>
+        </div>
+        <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j1"></div></div>
+      </div>
+
+      <div class="joint-row" id="gauge-j2">
+        <div class="joint-header">
+          <span>J2: Shoulder (Pitch)</span>
+          <span class="joint-val" id="val-j2">0°</span>
+        </div>
+        <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j2"></div></div>
+      </div>
+
+      <div class="joint-row" id="gauge-j3">
+        <div class="joint-header">
+          <span>J3: Elbow (Pitch)</span>
+          <span class="joint-val" id="val-j3">0°</span>
+        </div>
+        <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j3"></div></div>
+      </div>
+
+      <div class="joint-row" id="gauge-j4">
+        <div class="joint-header">
+          <span>J4: Wrist Pitch</span>
+          <span class="joint-val" id="val-j4">0°</span>
+        </div>
+        <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j4"></div></div>
+      </div>
+
+      <div class="joint-row" id="gauge-j5">
+        <div class="joint-header">
+          <span>J5: Wrist Roll</span>
+          <span class="joint-val" id="val-j5">0°</span>
+        </div>
+        <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j5"></div></div>
+      </div>
+
+      <div class="joint-row" id="gauge-j6">
+        <div class="joint-header">
+          <span>J6: Gripper</span>
+          <span class="joint-val" id="val-j6">CLOSED</span>
+        </div>
+        <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j6"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Computer Vision Panel -->
+  <div class="right-panel">
+    <div class="panel-title">
+      <span>VISION TRACKER</span>
+      <span style="font-size: 11px; color: #10b981;">OPENCV / MEDIAPIPE</span>
+    </div>
+
+    <!-- Live Webcam + Tracking Canvas Overlay -->
+    <div class="cam-box">
+      <video id="webcam" playsinline muted autoplay></video>
+      <canvas id="cam-canvas"></canvas>
+      <div class="cam-overlay" id="cam-status">CAMERA CONNECTING...</div>
+    </div>
+
+    <!-- Live Detected Gesture Card -->
+    <div class="gesture-banner">
+      <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">DETECTED FINGER GESTURE</div>
+      <div class="gesture-num" id="disp-count">0</div>
+      <div class="gesture-desc" id="disp-action">HOLD / REST POSE</div>
+    </div>
+
+    <!-- Mode Mapping Explanation -->
+    <div class="guide-card" id="guide-text">
+      <b>Pose Mode Gestures:</b><br>
+      • <b>0 (Fist):</b> Home / Standby<br>
+      • <b>1:</b> Forward Reach (Pick)<br>
+      • <b>2:</b> Upward Lift (Carry)<br>
+      • <b>3:</b> Side Placement (Drop)<br>
+      • <b>4:</b> High Inspection<br>
+      • <b>5:</b> Open Gripper Wave
+    </div>
+  </div>
+
+  <!-- Presentation Fallback Hint -->
+  <div class="keyboard-hint">
+    💡 <b>Presenter Tip:</b> Use keys <b>0, 1, 2, 3, 4, 5</b> anytime on your keyboard as an instant fallback!
+  </div>
+
+  <!-- Bottom Control Bar -->
+  <div class="bottom-bar">
+    <button class="action-btn" onclick="resetToHome()">⟲ Reset Robot</button>
+    <button class="action-btn" id="btn-toggle-cam" onclick="toggleWebcam()">📷 Toggle Camera</button>
+    <button class="action-btn" onclick="toggleWireframe()">🕸 Toggle Wireframe</button>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. THREE.JS 3D ROBOTIC ARM SCENE SETUP
+    // ==========================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0c1017);
+    scene.fog = new THREE.FogExp2(0x0c1017, 0.035);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(4, 3.5, 4.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't go below floor
+    controls.target.set(0, 1.2, 0);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 10, 5);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 0.5;
+    dirLight.shadow.camera.far = 25;
+    scene.add(dirLight);
+
+    const blueRimLight = new THREE.DirectionalLight(0x00d2ff, 1.5);
+    blueRimLight.position.set(-5, 4, -4);
+    scene.add(blueRimLight);
+
+    const orangeKeyLight = new THREE.DirectionalLight(0xff9100, 0.8);
+    orangeKeyLight.position.set(3, 2, -3);
+    scene.add(orangeKeyLight);
+
+    // Studio Grid Floor
+    const grid = new THREE.GridHelper(12, 24, 0x00d2ff, 0x1e293b);
+    grid.position.y = 0;
+    scene.add(grid);
+
+    const floorGeo = new THREE.PlaneGeometry(30, 30);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x080c12,
+      roughness: 0.85,
+      metalness: 0.2
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // ==========================================
+    // 2. ROBOTIC ARM 3D ARTICULATED KINEMATIC MODEL
+    // ==========================================
+    // Industrial materials (PBR)
+    const orangeMat = new THREE.MeshStandardMaterial({
+      color: 0xff8c00, // Industrial KUKA-style orange
+      roughness: 0.35,
+      metalness: 0.65
+    });
+
+    const darkMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x1e2430,
+      roughness: 0.4,
+      metalness: 0.8
+    });
+
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xd8e2dc,
+      roughness: 0.15,
+      metalness: 0.95
+    });
+
+    const accentBlueMat = new THREE.MeshStandardMaterial({
+      color: 0x00d2ff,
+      emissive: 0x005577,
+      roughness: 0.3
+    });
+
+    let robotMaterials = [orangeMat, darkMetalMat, chromeMat, accentBlueMat];
+
+    // Robot Root
+    const robotRoot = new THREE.Group();
+    scene.add(robotRoot);
+
+    // Base Pedestal (Static)
+    const basePlateGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.12, 32);
+    const basePlate = new THREE.Mesh(basePlateGeo, darkMetalMat);
+    basePlate.position.y = 0.06;
+    basePlate.castShadow = true;
+    basePlate.receiveShadow = true;
+    robotRoot.add(basePlate);
+
+    const baseRiserGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.25, 32);
+    const baseRiser = new THREE.Mesh(baseRiserGeo, darkMetalMat);
+    baseRiser.position.y = 0.245;
+    baseRiser.castShadow = true;
+    robotRoot.add(baseRiser);
+
+    // JOINT 1: Base Turntable (Yaw: Y-axis)
+    const j1_turntable = new THREE.Group();
+    j1_turntable.position.y = 0.37;
+    robotRoot.add(j1_turntable);
+
+    const j1_mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.5, 0.2, 32), orangeMat);
+    j1_mesh.castShadow = true;
+    j1_turntable.add(j1_mesh);
+
+    // Shoulder Pivot Brackets
+    const bracketL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.3), darkMetalMat);
+    bracketL.position.set(-0.25, 0.25, 0);
+    bracketL.castShadow = true;
+    j1_turntable.add(bracketL);
+
+    const bracketR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.3), darkMetalMat);
+    bracketR.position.set(0.25, 0.25, 0);
+    bracketR.castShadow = true;
+    j1_turntable.add(bracketR);
+
+    // JOINT 2: Shoulder (Pitch: Z-axis)
+    const j2_shoulder = new THREE.Group();
+    j2_shoulder.position.set(0, 0.35, 0);
+    j1_turntable.add(j2_shoulder);
+
+    // Shoulder motor cylinder
+    const shoulderCap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.65, 24), chromeMat);
+    shoulderCap.rotation.z = Math.PI / 2;
+    shoulderCap.castShadow = true;
+    j2_shoulder.add(shoulderCap);
+
+    // Lower Arm Link (Upper Boom)
+    const upperArmLength = 1.2;
+    const upperArm = new THREE.Mesh(new THREE.BoxGeometry(0.24, upperArmLength, 0.22), orangeMat);
+    upperArm.position.set(0, upperArmLength / 2, 0);
+    upperArm.castShadow = true;
+    j2_shoulder.add(upperArm);
+
+    // Decorative cylinder detail on arm
+    const armDeco = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.9, 16), darkMetalMat);
+    armDeco.position.set(0.14, upperArmLength / 2, 0);
+    armDeco.castShadow = true;
+    j2_shoulder.add(armDeco);
+
+    // JOINT 3: Elbow (Pitch: Z-axis)
+    const j3_elbow = new THREE.Group();
+    j3_elbow.position.set(0, upperArmLength, 0);
+    j2_shoulder.add(j3_elbow);
+
+    const elbowMotor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5, 24), darkMetalMat);
+    elbowMotor.rotation.z = Math.PI / 2;
+    elbowMotor.castShadow = true;
+    j3_elbow.add(elbowMotor);
+
+    // Forearm Link
+    const foreArmLength = 1.0;
+    const foreArm = new THREE.Mesh(new THREE.BoxGeometry(0.18, foreArmLength, 0.18), orangeMat);
+    foreArm.position.set(0, foreArmLength / 2, 0);
+    foreArm.castShadow = true;
+    j3_elbow.add(foreArm);
+
+    // JOINT 4: Wrist Pitch (Pitch: Z-axis)
+    const j4_wristPitch = new THREE.Group();
+    j4_wristPitch.position.set(0, foreArmLength, 0);
+    j3_elbow.add(j4_wristPitch);
+
+    const wristPitchMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.35, 20), darkMetalMat);
+    wristPitchMesh.rotation.z = Math.PI / 2;
+    wristPitchMesh.castShadow = true;
+    j4_wristPitch.add(wristPitchMesh);
+
+    // JOINT 5: Wrist Roll (Roll: Y-axis)
+    const j5_wristRoll = new THREE.Group();
+    j5_wristRoll.position.set(0, 0.15, 0);
+    j4_wristPitch.add(j5_wristRoll);
+
+    const toolFlange = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 24), chromeMat);
+    toolFlange.castShadow = true;
+    j5_wristRoll.add(toolFlange);
+
+    // Gripper Base Plate
+    const gripperBase = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.15), darkMetalMat);
+    gripperBase.position.set(0, 0.1, 0);
+    gripperBase.castShadow = true;
+    j5_wristRoll.add(gripperBase);
+
+    // JOINT 6: Gripper Fingers (Parallel actuation)
+    const fingerLeft = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.08), accentBlueMat);
+    fingerLeft.position.set(-0.08, 0.22, 0);
+    fingerLeft.castShadow = true;
+    j5_wristRoll.add(fingerLeft);
+
+    const fingerRight = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.08), accentBlueMat);
+    fingerRight.position.set(0.08, 0.22, 0);
+    fingerRight.castShadow = true;
+    j5_wristRoll.add(fingerRight);
+
+    // Target and Current Angle State (in Radians)
+    const joints = {
+      j1: { current: 0, target: 0, min: -Math.PI, max: Math.PI },
+      j2: { current: 0, target: 0.3, min: -1.2, max: 1.5 },
+      j3: { current: 0, target: -0.6, min: -2.0, max: 1.5 },
+      j4: { current: 0, target: 0.3, min: -1.8, max: 1.8 },
+      j5: { current: 0, target: 0, min: -Math.PI, max: Math.PI },
+      j6_open: { current: 0.04, target: 0.04, min: 0.02, max: 0.12 } // Finger separation
+    };
+
+    // Preset Arm Poses for Presentation
+    const PRESET_POSES = {
+      0: { name: "HOME / REST", j1: 0, j2: 0.3, j3: -0.6, j4: 0.3, j5: 0, j6: 0.03 },
+      1: { name: "REACH FORWARD (PICK)", j1: 0, j2: 0.85, j3: -0.9, j4: 0.1, j5: 0, j6: 0.12 },
+      2: { name: "UPWARD LIFT (CARRY)", j1: 0.2, j2: -0.2, j3: -0.4, j4: 0.6, j5: 0, j6: 0.03 },
+      3: { name: "SIDE DROP (PLACE)", j1: -1.57, j2: 0.7, j3: -0.8, j4: 0.2, j5: 1.57, j6: 0.12 },
+      4: { name: "HIGH INSPECTION", j1: 1.2, j2: -0.5, j3: -0.2, j4: -0.3, j5: 0.8, j6: 0.06 },
+      5: { name: "WAVE / DEMO EXTEND", j1: 0, j2: 0.1, j3: 0.2, j4: 0.2, j5: 1.57, j6: 0.12 }
+    };
+
+    let currentMode = 'preset'; // 'preset' or 'joint'
+    let selectedJointIdx = 1;
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('btn-mode-preset').classList.toggle('active', mode === 'preset');
+      document.getElementById('btn-mode-joint').classList.toggle('active', mode === 'joint');
+      document.getElementById('control-mode-text').textContent = mode === 'preset' ? 'PRESET POSES' : 'JOINT SELECT';
+      
+      const guide = document.getElementById('guide-text');
+      if (mode === 'preset') {
+        guide.innerHTML = `
+          <b>Pose Mode Gestures:</b><br>
+          • <b>0 (Fist):</b> Home / Standby<br>
+          • <b>1:</b> Forward Reach (Pick)<br>
+          • <b>2:</b> Upward Lift (Carry)<br>
+          • <b>3:</b> Side Placement (Drop)<br>
+          • <b>4:</b> High Inspection<br>
+          • <b>5:</b> Open Gripper Wave
+        `;
+      } else {
+        guide.innerHTML = `
+          <b>Joint Mode Gestures:</b><br>
+          • <b>1 Finger:</b> Select & Sweep J1 (Base)<br>
+          • <b>2 Fingers:</b> Select & Move J2 (Shoulder)<br>
+          • <b>3 Fingers:</b> Select & Move J3 (Elbow)<br>
+          • <b>4 Fingers:</b> Select & Move J4 (Wrist)<br>
+          • <b>5 Fingers:</b> Open Gripper Full<br>
+          • <b>0 (Fist):</b> Clamp Gripper Tight
+        `;
+      }
+    }
+
+    function applyGestureAction(numFingers) {
+      const dispCount = document.getElementById('disp-count');
+      const dispAction = document.getElementById('disp-action');
+      dispCount.textContent = numFingers;
+
+      if (currentMode === 'preset') {
+        const pose = PRESET_POSES[numFingers] || PRESET_POSES[0];
+        dispAction.textContent = pose.name;
+
+        joints.j1.target = pose.j1;
+        joints.j2.target = pose.j2;
+        joints.j3.target = pose.j3;
+        joints.j4.target = pose.j4;
+        joints.j5.target = pose.j5;
+        joints.j6_open.target = pose.j6;
+
+        // Highlight active status
+        for (let i = 1; i <= 6; i++) {
+          document.getElementById(`gauge-j${i}`).classList.remove('active');
+        }
+      } else {
+        // Joint Select Mode: Active joint is chosen by finger count
+        for (let i = 1; i <= 6; i++) {
+          document.getElementById(`gauge-j${i}`).classList.remove('active');
+        }
+
+        if (numFingers === 0) {
+          dispAction.textContent = "CLAMP GRIPPER (CLOSE)";
+          joints.j6_open.target = 0.02;
+          document.getElementById('gauge-j6').classList.add('active');
+        } else if (numFingers === 5) {
+          dispAction.textContent = "OPEN GRIPPER (WIDE)";
+          joints.j6_open.target = 0.12;
+          document.getElementById('gauge-j6').classList.add('active');
+        } else {
+          const jointKey = `j${numFingers}`;
+          document.getElementById(`gauge-j${numFingers}`).classList.add('active');
+
+          if (numFingers === 1) {
+            dispAction.textContent = "ROTATE BASE (J1)";
+            joints.j1.target = (joints.j1.target > 0) ? -1.2 : 1.2;
+          } else if (numFingers === 2) {
+            dispAction.textContent = "ACTUATE SHOULDER (J2)";
+            joints.j2.target = (joints.j2.target > 0.4) ? -0.3 : 0.8;
+          } else if (numFingers === 3) {
+            dispAction.textContent = "ACTUATE ELBOW (J3)";
+            joints.j3.target = (joints.j3.target < -0.8) ? 0.3 : -1.2;
+          } else if (numFingers === 4) {
+            dispAction.textContent = "PITCH WRIST (J4)";
+            joints.j4.target = (joints.j4.target > 0.2) ? -0.8 : 0.8;
+          }
+        }
+      }
+    }
+
+    function resetToHome() {
+      applyGestureAction(0);
+    }
+
+    function toggleWireframe() {
+      robotMaterials.forEach(m => m.wireframe = !m.wireframe);
+    }
+
+    // ==========================================
+    // 3. MEDIAPIPE / OPENCV WEBCAM HAND TRACKER
+    // ==========================================
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('cam-canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const camStatus = document.getElementById('cam-status');
+    let cameraInstance = null;
+    let isWebcamRunning = true;
+
+    function countFingers(landmarks) {
+      if (!landmarks || landmarks.length < 21) return 0;
+      let count = 0;
+
+      // Finger Tips and PIP Joints
+      // Thumb: 4 (tip), 2 (MCP)
+      // Index: 8 (tip), 6 (PIP)
+      // Middle: 12 (tip), 10 (PIP)
+      // Ring: 16 (tip), 14 (PIP)
+      // Pinky: 20 (tip), 18 (PIP)
+
+      // Thumb check: compare tip x vs IP joint x based on wrist side
+      const isRightHand = landmarks[17].x > landmarks[5].x;
+      if (isRightHand) {
+        if (landmarks[4].x < landmarks[3].x) count++;
+      } else {
+        if (landmarks[4].x > landmarks[3].x) count++;
+      }
+
+      // 4 Fingers check: Y coordinate of Tip must be above (less than) PIP Joint
+      if (landmarks[8].y < landmarks[6].y) count++;   // Index
+      if (landmarks[12].y < landmarks[10].y) count++; // Middle
+      if (landmarks[16].y < landmarks[14].y) count++; // Ring
+      if (landmarks[20].y < landmarks[18].y) count++; // Pinky
+
+      return count;
+    }
+
+    let lastDetectedFingerCount = -1;
+    let stableFrameCount = 0;
+
+    function onHandResults(results) {
+      canvasElement.width = videoElement.videoWidth || 320;
+      canvasElement.height = videoElement.videoHeight || 240;
+
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+
+        // Draw custom high-tech landmark nodes & connections
+        drawHandSkeletal(landmarks, canvasCtx, canvasElement.width, canvasElement.height);
+
+        const fingers = countFingers(landmarks);
+
+        // Stabilize gesture debounce (require 3 consistent frames to switch)
+        if (fingers === lastDetectedFingerCount) {
+          stableFrameCount++;
+          if (stableFrameCount === 3) {
+            applyGestureAction(fingers);
+          }
+        } else {
+          lastDetectedFingerCount = fingers;
+          stableFrameCount = 0;
+        }
+
+        camStatus.textContent = `HAND DETECTED: ${fingers} FINGERS`;
+        camStatus.style.color = "#00d2ff";
+      } else {
+        camStatus.textContent = "WAITING FOR HAND GESTURE...";
+        camStatus.style.color = "#94a3b8";
+      }
+      canvasCtx.restore();
+    }
+
+    function drawHandSkeletal(landmarks, ctx, width, height) {
+      const connections = [
+        [0,1],[1,2],[2,3],[3,4], // Thumb
+        [0,5],[5,6],[6,7],[7,8], // Index
+        [0,9],[9,10],[10,11],[11,12], // Middle
+        [0,13],[13,14],[14,15],[15,16], // Ring
+        [0,17],[17,18],[18,19],[19,20], // Pinky
+        [5,9],[9,13],[13,17] // Palm
+      ];
+
+      ctx.strokeStyle = '#00d2ff';
+      ctx.lineWidth = 2.5;
+
+      connections.forEach(([i, j]) => {
+        ctx.beginPath();
+        ctx.moveTo(landmarks[i].x * width, landmarks[i].y * height);
+        ctx.lineTo(landmarks[j].x * width, landmarks[j].y * height);
+        ctx.stroke();
+      });
+
+      landmarks.forEach((pt, idx) => {
+        ctx.beginPath();
+        ctx.arc(pt.x * width, pt.y * height, idx % 4 === 0 ? 5 : 3.5, 0, 2 * Math.PI);
+        ctx.fillStyle = (idx === 4 || idx === 8 || idx === 12 || idx === 16 || idx === 20) ? '#ff9100' : '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#000000';
+        ctx.stroke();
+      });
+    }
+
+    // Initialize MediaPipe Hands
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.65,
+      minTrackingConfidence: 0.6
+    });
+
+    hands.onResults(onHandResults);
+
+    // Initialize Camera
+    cameraInstance = new Camera(videoElement, {
+      onFrame: async () => {
+        if (isWebcamRunning) {
+          await hands.send({ image: videoElement });
+        }
+      },
+      width: 480,
+      height: 360
+    });
+
+    cameraInstance.start().then(() => {
+      document.getElementById('loading-indicator').style.opacity = '0';
+      setTimeout(() => document.getElementById('loading-indicator').style.display = 'none', 500);
+    }).catch(err => {
+      console.warn("Webcam access error / fallback to manual controls:", err);
+      camStatus.textContent = "NO WEBCAM (USE KEYS 0-5)";
+      camStatus.style.color = "#ff9100";
+      document.getElementById('loading-indicator').style.display = 'none';
+    });
+
+    function toggleWebcam() {
+      const btn = document.getElementById('btn-toggle-cam');
+      isWebcamRunning = !isWebcamRunning;
+      btn.classList.toggle('active', !isWebcamRunning);
+      btn.textContent = isWebcamRunning ? "📷 Toggle Camera" : "📷 Cam Disabled";
+      if (!isWebcamRunning) {
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        camStatus.textContent = "CAMERA PAUSED";
+      }
+    }
+
+    // ==========================================
+    // 4. PRESENTATION KEYBOARD FALLBACK (0 - 5)
+    // ==========================================
+    window.addEventListener('keydown', (e) => {
+      if (['0','1','2','3','4','5'].includes(e.key)) {
+        applyGestureAction(parseInt(e.key));
+      }
+      if (e.key.toLowerCase() === 'm') {
+        setMode(currentMode === 'preset' ? 'joint' : 'preset');
+      }
+      if (e.key.toLowerCase() === 'r') {
+        resetToHome();
+      }
+    });
+
+    // ==========================================
+    // 5. ANIMATION LOOP & KINEMATICS INTERPOLATION
+    // ==========================================
+    let lastTime = performance.now();
+    let frameCount = 0;
+    const fpsElem = document.getElementById('fps-counter');
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // FPS calculation
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime >= 1000) {
+        fpsElem.textContent = frameCount;
+        frameCount = 0;
+        lastTime = now;
+      }
+
+      // Smooth Kinematic Interpolation (Lerp)
+      const lerpFactor = 0.08;
+      joints.j1.current += (joints.j1.target - joints.j1.current) * lerpFactor;
+      joints.j2.current += (joints.j2.target - joints.j2.current) * lerpFactor;
+      joints.j3.current += (joints.j3.target - joints.j3.current) * lerpFactor;
+      joints.j4.current += (joints.j4.target - joints.j4.current) * lerpFactor;
+      joints.j5.current += (joints.j5.target - joints.j5.current) * lerpFactor;
+      joints.j6_open.current += (joints.j6_open.target - joints.j6_open.current) * lerpFactor;
+
+      // Apply to 3D Nodes
+      j1_turntable.rotation.y = joints.j1.current;
+      j2_shoulder.rotation.z = joints.j2.current;
+      j3_elbow.rotation.z = joints.j3.current;
+      j4_wristPitch.rotation.z = joints.j4.current;
+      j5_wristRoll.rotation.y = joints.j5.current;
+
+      // Parallel Gripper separation
+      fingerLeft.position.x = -joints.j6_open.current;
+      fingerRight.position.x = joints.j6_open.current;
+
+      // Update UI Telemetry Bars & Angles
+      updateTelemetryUI();
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function radToDeg(r) {
+      return Math.round(r * (180 / Math.PI));
+    }
+
+    function updateTelemetryUI() {
+      document.getElementById('val-j1').textContent = radToDeg(joints.j1.current) + '°';
+      document.getElementById('val-j2').textContent = radToDeg(joints.j2.current) + '°';
+      document.getElementById('val-j3').textContent = radToDeg(joints.j3.current) + '°';
+      document.getElementById('val-j4').textContent = radToDeg(joints.j4.current) + '°';
+      document.getElementById('val-j5').textContent = radToDeg(joints.j5.current) + '°';
+      document.getElementById('val-j6').textContent = joints.j6_open.current > 0.07 ? 'OPEN' : 'CLAMPED';
+
+      // Bar percentages
+      document.getElementById('bar-j1').style.width = ((joints.j1.current + Math.PI) / (2 * Math.PI) * 100) + '%';
+      document.getElementById('bar-j2').style.width = ((joints.j2.current + 1.2) / 2.7 * 100) + '%';
+      document.getElementById('bar-j3').style.width = ((joints.j3.current + 2.0) / 3.5 * 100) + '%';
+      document.getElementById('bar-j4').style.width = ((joints.j4.current + 1.8) / 3.6 * 100) + '%';
+      document.getElementById('bar-j5').style.width = ((joints.j5.current + Math.PI) / (2 * Math.PI) * 100) + '%';
+      document.getElementById('bar-j6').style.width = ((joints.j6_open.current - 0.02) / 0.1 * 100) + '%';
+    }
+
+    // Window Resize Handling
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Start Animation Loop
+    animate();
+    applyGestureAction(0); // Initialize at Home pose
+  </script>
+</body>
+</html>
