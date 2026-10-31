@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Robotic Arm Hand Gesture Controller</title>
+  <title>AM-ARM200 7-DOF Robotic Arm Gesture Controller</title>
   <style>
     :root {
-      --bg-dark: #0f141c;
-      --panel-bg: rgba(20, 27, 40, 0.85);
+      --bg-dark: #0a0e17;
+      --panel-bg: rgba(16, 23, 38, 0.88);
       --accent: #00d2ff;
       --accent-glow: rgba(0, 210, 255, 0.4);
       --accent-orange: #ff9100;
+      --accent-green: #10b981;
       --text: #f0f4f8;
       --text-dim: #94a3b8;
-      --border: rgba(255, 255, 255, 0.1);
+      --border: rgba(255, 255, 255, 0.12);
       --card-bg: rgba(255, 255, 255, 0.04);
     }
 
@@ -79,8 +80,8 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
       animation: pulse 2s infinite;
     }
 
@@ -99,16 +100,18 @@
       backdrop-filter: blur(16px);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 18px;
+      padding: 16px;
       z-index: 10;
       box-shadow: 0 10px 30px rgba(0,0,0,0.4);
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
     }
 
     .panel-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -122,7 +125,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.35);
       padding: 4px;
       border-radius: 10px;
     }
@@ -146,46 +149,48 @@
       box-shadow: 0 0 12px var(--accent-glow);
     }
 
-    /* Joint Gauges */
+    /* 7 Joint Gauges */
     .joint-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 7px;
     }
 
     .joint-row {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
+      border-radius: 8px;
+      padding: 7px 10px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      transition: border-color 0.2s;
+      gap: 3px;
+      transition: all 0.2s;
     }
 
     .joint-row.active {
       border-color: var(--accent);
-      background: rgba(0, 210, 255, 0.08);
+      background: rgba(0, 210, 255, 0.12);
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
     }
 
     .joint-header {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
     }
 
     .joint-val {
       color: var(--accent);
       font-family: monospace;
+      font-size: 11px;
     }
 
     .joint-bar-bg {
       width: 100%;
-      height: 5px;
+      height: 4px;
       background: rgba(255,255,255,0.1);
-      border-radius: 3px;
+      border-radius: 2px;
       overflow: hidden;
     }
 
@@ -196,7 +201,7 @@
       transition: width 0.1s linear;
     }
 
-    /* Right Camera Feed & Gesture Monitor */
+    /* Right Camera Feed & Vision HUD */
     .right-panel {
       position: absolute;
       top: 76px;
@@ -217,7 +222,7 @@
     .cam-box {
       position: relative;
       width: 100%;
-      height: 200px;
+      height: 190px;
       background: #000;
       border-radius: 12px;
       overflow: hidden;
@@ -244,12 +249,16 @@
       position: absolute;
       bottom: 8px;
       left: 8px;
-      background: rgba(0,0,0,0.7);
-      padding: 4px 10px;
+      right: 8px;
+      background: rgba(0,0,0,0.75);
+      padding: 4px 8px;
       border-radius: 6px;
-      font-size: 11px;
-      color: #10b981;
+      font-size: 10px;
+      color: var(--accent-green);
       font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* Gesture Display Banner */
@@ -264,6 +273,14 @@
       gap: 4px;
     }
 
+    .hands-detected-tag {
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--accent-orange);
+    }
+
     .gesture-num {
       font-size: 32px;
       font-weight: 800;
@@ -273,7 +290,7 @@
     }
 
     .gesture-desc {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text);
     }
@@ -336,7 +353,7 @@
       border-color: var(--accent-orange);
     }
 
-    /* Fallback UI for Presentation emergency */
+    /* Presentation Safety Hint */
     .keyboard-hint {
       position: absolute;
       bottom: 64px;
@@ -344,8 +361,8 @@
       transform: translateX(-50%);
       font-size: 11px;
       color: var(--text-dim);
-      background: rgba(0,0,0,0.6);
-      padding: 4px 12px;
+      background: rgba(0,0,0,0.65);
+      padding: 4px 14px;
       border-radius: 20px;
       pointer-events: none;
       z-index: 10;
@@ -361,7 +378,7 @@
       justify-content: center;
       align-items: center;
       gap: 16px;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.4s ease;
     }
 
     .spinner {
@@ -378,9 +395,11 @@
     }
   </style>
 
-  <!-- Three.js + OrbitControls -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Local Offline Three.js Engine & Loaders -->
+  <script src="libs/three.min.js"></script>
+  <script src="libs/OrbitControls.js"></script>
+  <script src="libs/STLLoader.js"></script>
+  <script src="libs/URDFLoader.js"></script>
 
   <!-- MediaPipe Hands & Camera Utils -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -391,18 +410,19 @@
   <!-- Loading Screen -->
   <div id="loading-indicator">
     <div class="spinner"></div>
-    <h3 style="font-weight: 500; letter-spacing: 1px;">INITIALIZING 3D ROBOT KINEMATICS & VISION...</h3>
+    <h3 style="font-weight: 600; letter-spacing: 1px;">LOADING AM-ARM200 ROBOTIC ARM (7-DOF)...</h3>
+    <div id="loading-subtext" style="font-size: 12px; color: var(--text-dim);">Parsing URDF Kinematics & 3D STLs...</div>
   </div>
 
   <!-- Three.js 3D Viewport -->
   <div id="canvas-container"></div>
 
-  <!-- Header -->
+  <!-- Top Status Header -->
   <header>
     <div class="badge-group">
       <div class="glass-badge">
         <div class="status-dot"></div>
-        <span>6-DOF ROBOTIC ARM SIMULATION</span>
+        <span>AM-ARM200 (7-AXIS URDF ROBOT)</span>
       </div>
       <div class="glass-badge" style="color: var(--text-dim);">
         FPS: <span id="fps-counter" style="color: var(--accent); font-family: monospace;">60</span>
@@ -412,16 +432,16 @@
     <div class="badge-group">
       <div class="glass-badge">
         <span style="color: var(--accent-orange);">●</span>
-        <span>GESTURE CONTROL: <span id="vision-status" style="color: #10b981;">ACTIVE</span></span>
+        <span>GESTURE CONTROL: <span id="vision-status" style="color: #10b981;">2-HAND TRACKING</span></span>
       </div>
     </div>
   </header>
 
-  <!-- Left Telemetry Panel -->
+  <!-- Left Kinematics Panel (All 7 Joints) -->
   <div class="left-panel">
     <div class="panel-title">
-      <span>KINEMATICS</span>
-      <span style="font-size: 11px; color: var(--text-dim);" id="control-mode-text">PRESET POSES</span>
+      <span>7-DOF KINEMATICS</span>
+      <span style="font-size: 10px; color: var(--text-dim);" id="control-mode-text">PRESET POSES</span>
     </div>
 
     <div class="mode-selector">
@@ -429,11 +449,11 @@
       <button class="mode-btn" id="btn-mode-joint" onclick="setMode('joint')">JOINT SELECT</button>
     </div>
 
-    <!-- Joint Angle Gauges -->
+    <!-- 7 Joint Rows -->
     <div class="joint-list">
       <div class="joint-row" id="gauge-j1">
         <div class="joint-header">
-          <span>J1: Base (Yaw)</span>
+          <span>J1: Shoulder Pan</span>
           <span class="joint-val" id="val-j1">0°</span>
         </div>
         <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j1"></div></div>
@@ -441,7 +461,7 @@
 
       <div class="joint-row" id="gauge-j2">
         <div class="joint-header">
-          <span>J2: Shoulder (Pitch)</span>
+          <span>J2: Shoulder Lift</span>
           <span class="joint-val" id="val-j2">0°</span>
         </div>
         <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j2"></div></div>
@@ -449,7 +469,7 @@
 
       <div class="joint-row" id="gauge-j3">
         <div class="joint-header">
-          <span>J3: Elbow (Pitch)</span>
+          <span>J3: Elbow Flex</span>
           <span class="joint-val" id="val-j3">0°</span>
         </div>
         <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j3"></div></div>
@@ -457,7 +477,7 @@
 
       <div class="joint-row" id="gauge-j4">
         <div class="joint-header">
-          <span>J4: Wrist Pitch</span>
+          <span>J4: Wrist Flex</span>
           <span class="joint-val" id="val-j4">0°</span>
         </div>
         <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j4"></div></div>
@@ -465,7 +485,7 @@
 
       <div class="joint-row" id="gauge-j5">
         <div class="joint-header">
-          <span>J5: Wrist Roll</span>
+          <span>J5: Wrist Yaw</span>
           <span class="joint-val" id="val-j5">0°</span>
         </div>
         <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j5"></div></div>
@@ -473,70 +493,81 @@
 
       <div class="joint-row" id="gauge-j6">
         <div class="joint-header">
-          <span>J6: Gripper</span>
-          <span class="joint-val" id="val-j6">CLOSED</span>
+          <span>J6: Wrist Roll (2-Hand)</span>
+          <span class="joint-val" id="val-j6">0°</span>
         </div>
         <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j6"></div></div>
+      </div>
+
+      <div class="joint-row" id="gauge-j7">
+        <div class="joint-header">
+          <span>J7: Gripper Jaw (2-Hand)</span>
+          <span class="joint-val" id="val-j7">CLOSED</span>
+        </div>
+        <div class="joint-bar-bg"><div class="joint-bar-fill" id="bar-j7"></div></div>
       </div>
     </div>
   </div>
 
-  <!-- Right Computer Vision Panel -->
+  <!-- Right Vision Panel -->
   <div class="right-panel">
     <div class="panel-title">
       <span>VISION TRACKER</span>
-      <span style="font-size: 11px; color: #10b981;">OPENCV / MEDIAPIPE</span>
+      <span style="font-size: 10px; color: var(--accent);">DUAL HANDS</span>
     </div>
 
     <!-- Live Webcam + Tracking Canvas Overlay -->
     <div class="cam-box">
       <video id="webcam" playsinline muted autoplay></video>
       <canvas id="cam-canvas"></canvas>
-      <div class="cam-overlay" id="cam-status">CAMERA CONNECTING...</div>
+      <div class="cam-overlay" id="cam-status">CAMERA INITIALIZING...</div>
     </div>
 
     <!-- Live Detected Gesture Card -->
     <div class="gesture-banner">
-      <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">DETECTED FINGER GESTURE</div>
+      <div class="hands-detected-tag" id="disp-hands">1 HAND DETECTED</div>
       <div class="gesture-num" id="disp-count">0</div>
       <div class="gesture-desc" id="disp-action">HOLD / REST POSE</div>
     </div>
 
     <!-- Mode Mapping Explanation -->
     <div class="guide-card" id="guide-text">
-      <b>Pose Mode Gestures:</b><br>
-      • <b>0 (Fist):</b> Home / Standby<br>
+      <b>1 Hand Gestures (1-5):</b><br>
+      • <b>0:</b> Home / Standby<br>
       • <b>1:</b> Forward Reach (Pick)<br>
       • <b>2:</b> Upward Lift (Carry)<br>
-      • <b>3:</b> Side Placement (Drop)<br>
-      • <b>4:</b> High Inspection<br>
-      • <b>5:</b> Open Gripper Wave
+      • <b>3:</b> Side Deposit (Left)<br>
+      • <b>4:</b> Side Deposit (Right)<br>
+      • <b>5:</b> High Overhead Reach<br>
+      <b>2 Hands Gestures (6-7):</b><br>
+      • <b>6 (5+1):</b> Wrist Roll Orientation<br>
+      • <b>7 (5+2):</b> Gripper Clamp & Release
     </div>
   </div>
 
   <!-- Presentation Fallback Hint -->
   <div class="keyboard-hint">
-    💡 <b>Presenter Tip:</b> Use keys <b>0, 1, 2, 3, 4, 5</b> anytime on your keyboard as an instant fallback!
+    💡 <b>Presenter Tip:</b> Press keys <b>0, 1, 2, 3, 4, 5, 6, 7</b> on keyboard anytime as instant fallback!
   </div>
 
   <!-- Bottom Control Bar -->
   <div class="bottom-bar">
     <button class="action-btn" onclick="resetToHome()">⟲ Reset Robot</button>
     <button class="action-btn" id="btn-toggle-cam" onclick="toggleWebcam()">📷 Toggle Camera</button>
-    <button class="action-btn" onclick="toggleWireframe()">🕸 Toggle Wireframe</button>
+    <button class="action-btn" onclick="toggleWireframe()">🕸 Wireframe</button>
   </div>
 
   <script>
     // ==========================================
-    // 1. THREE.JS 3D ROBOTIC ARM SCENE SETUP
+    // 1. THREE.JS 3D SCENE SETUP
     // ==========================================
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0c1017);
-    scene.fog = new THREE.FogExp2(0x0c1017, 0.035);
+    scene.background = new THREE.Color(0x0a0e17);
+    scene.fog = new THREE.FogExp2(0x0a0e17, 0.05);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(4, 3.5, 4.5);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
+    camera.position.set(1.1, 0.9, 1.2);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -549,37 +580,37 @@
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't go below floor
-    controls.target.set(0, 1.2, 0);
+    controls.target.set(0, 0.35, 0);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    dirLight.position.set(5, 10, 5);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    dirLight.position.set(3, 6, 4);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
     dirLight.shadow.mapSize.height = 2048;
-    dirLight.shadow.camera.near = 0.5;
-    dirLight.shadow.camera.far = 25;
+    dirLight.shadow.camera.near = 0.1;
+    dirLight.shadow.camera.far = 15;
     scene.add(dirLight);
 
-    const blueRimLight = new THREE.DirectionalLight(0x00d2ff, 1.5);
-    blueRimLight.position.set(-5, 4, -4);
-    scene.add(blueRimLight);
+    const cyanRimLight = new THREE.DirectionalLight(0x00d2ff, 1.5);
+    cyanRimLight.position.set(-4, 3, -3);
+    scene.add(cyanRimLight);
 
-    const orangeKeyLight = new THREE.DirectionalLight(0xff9100, 0.8);
-    orangeKeyLight.position.set(3, 2, -3);
-    scene.add(orangeKeyLight);
+    const orangeFillLight = new THREE.DirectionalLight(0xff9100, 0.8);
+    orangeFillLight.position.set(2, 2, -3);
+    scene.add(orangeFillLight);
 
     // Studio Grid Floor
-    const grid = new THREE.GridHelper(12, 24, 0x00d2ff, 0x1e293b);
+    const grid = new THREE.GridHelper(10, 30, 0x00d2ff, 0x1e293b);
     grid.position.y = 0;
     scene.add(grid);
 
-    const floorGeo = new THREE.PlaneGeometry(30, 30);
+    const floorGeo = new THREE.PlaneGeometry(25, 25);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x080c12,
+      color: 0x070b12,
       roughness: 0.85,
       metalness: 0.2
     });
@@ -589,173 +620,129 @@
     scene.add(floor);
 
     // ==========================================
-    // 2. ROBOTIC ARM 3D ARTICULATED KINEMATIC MODEL
+    // 2. LOAD AM-ARM200 URDF AND STL MESHES
     // ==========================================
-    // Industrial materials (PBR)
-    const orangeMat = new THREE.MeshStandardMaterial({
-      color: 0xff8c00, // Industrial KUKA-style orange
-      roughness: 0.35,
-      metalness: 0.65
-    });
+    let robotArm = null;
+    let robotMaterialsList = [];
 
-    const darkMetalMat = new THREE.MeshStandardMaterial({
-      color: 0x1e2430,
-      roughness: 0.4,
-      metalness: 0.8
-    });
-
-    const chromeMat = new THREE.MeshStandardMaterial({
-      color: 0xd8e2dc,
-      roughness: 0.15,
-      metalness: 0.95
-    });
-
-    const accentBlueMat = new THREE.MeshStandardMaterial({
-      color: 0x00d2ff,
-      emissive: 0x005577,
-      roughness: 0.3
-    });
-
-    let robotMaterials = [orangeMat, darkMetalMat, chromeMat, accentBlueMat];
-
-    // Robot Root
-    const robotRoot = new THREE.Group();
-    scene.add(robotRoot);
-
-    // Base Pedestal (Static)
-    const basePlateGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.12, 32);
-    const basePlate = new THREE.Mesh(basePlateGeo, darkMetalMat);
-    basePlate.position.y = 0.06;
-    basePlate.castShadow = true;
-    basePlate.receiveShadow = true;
-    robotRoot.add(basePlate);
-
-    const baseRiserGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.25, 32);
-    const baseRiser = new THREE.Mesh(baseRiserGeo, darkMetalMat);
-    baseRiser.position.y = 0.245;
-    baseRiser.castShadow = true;
-    robotRoot.add(baseRiser);
-
-    // JOINT 1: Base Turntable (Yaw: Y-axis)
-    const j1_turntable = new THREE.Group();
-    j1_turntable.position.y = 0.37;
-    robotRoot.add(j1_turntable);
-
-    const j1_mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.5, 0.2, 32), orangeMat);
-    j1_mesh.castShadow = true;
-    j1_turntable.add(j1_mesh);
-
-    // Shoulder Pivot Brackets
-    const bracketL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.3), darkMetalMat);
-    bracketL.position.set(-0.25, 0.25, 0);
-    bracketL.castShadow = true;
-    j1_turntable.add(bracketL);
-
-    const bracketR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.3), darkMetalMat);
-    bracketR.position.set(0.25, 0.25, 0);
-    bracketR.castShadow = true;
-    j1_turntable.add(bracketR);
-
-    // JOINT 2: Shoulder (Pitch: Z-axis)
-    const j2_shoulder = new THREE.Group();
-    j2_shoulder.position.set(0, 0.35, 0);
-    j1_turntable.add(j2_shoulder);
-
-    // Shoulder motor cylinder
-    const shoulderCap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.65, 24), chromeMat);
-    shoulderCap.rotation.z = Math.PI / 2;
-    shoulderCap.castShadow = true;
-    j2_shoulder.add(shoulderCap);
-
-    // Lower Arm Link (Upper Boom)
-    const upperArmLength = 1.2;
-    const upperArm = new THREE.Mesh(new THREE.BoxGeometry(0.24, upperArmLength, 0.22), orangeMat);
-    upperArm.position.set(0, upperArmLength / 2, 0);
-    upperArm.castShadow = true;
-    j2_shoulder.add(upperArm);
-
-    // Decorative cylinder detail on arm
-    const armDeco = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.9, 16), darkMetalMat);
-    armDeco.position.set(0.14, upperArmLength / 2, 0);
-    armDeco.castShadow = true;
-    j2_shoulder.add(armDeco);
-
-    // JOINT 3: Elbow (Pitch: Z-axis)
-    const j3_elbow = new THREE.Group();
-    j3_elbow.position.set(0, upperArmLength, 0);
-    j2_shoulder.add(j3_elbow);
-
-    const elbowMotor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5, 24), darkMetalMat);
-    elbowMotor.rotation.z = Math.PI / 2;
-    elbowMotor.castShadow = true;
-    j3_elbow.add(elbowMotor);
-
-    // Forearm Link
-    const foreArmLength = 1.0;
-    const foreArm = new THREE.Mesh(new THREE.BoxGeometry(0.18, foreArmLength, 0.18), orangeMat);
-    foreArm.position.set(0, foreArmLength / 2, 0);
-    foreArm.castShadow = true;
-    j3_elbow.add(foreArm);
-
-    // JOINT 4: Wrist Pitch (Pitch: Z-axis)
-    const j4_wristPitch = new THREE.Group();
-    j4_wristPitch.position.set(0, foreArmLength, 0);
-    j3_elbow.add(j4_wristPitch);
-
-    const wristPitchMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.35, 20), darkMetalMat);
-    wristPitchMesh.rotation.z = Math.PI / 2;
-    wristPitchMesh.castShadow = true;
-    j4_wristPitch.add(wristPitchMesh);
-
-    // JOINT 5: Wrist Roll (Roll: Y-axis)
-    const j5_wristRoll = new THREE.Group();
-    j5_wristRoll.position.set(0, 0.15, 0);
-    j4_wristPitch.add(j5_wristRoll);
-
-    const toolFlange = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 24), chromeMat);
-    toolFlange.castShadow = true;
-    j5_wristRoll.add(toolFlange);
-
-    // Gripper Base Plate
-    const gripperBase = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.15), darkMetalMat);
-    gripperBase.position.set(0, 0.1, 0);
-    gripperBase.castShadow = true;
-    j5_wristRoll.add(gripperBase);
-
-    // JOINT 6: Gripper Fingers (Parallel actuation)
-    const fingerLeft = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.08), accentBlueMat);
-    fingerLeft.position.set(-0.08, 0.22, 0);
-    fingerLeft.castShadow = true;
-    j5_wristRoll.add(fingerLeft);
-
-    const fingerRight = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.08), accentBlueMat);
-    fingerRight.position.set(0.08, 0.22, 0);
-    fingerRight.castShadow = true;
-    j5_wristRoll.add(fingerRight);
-
-    // Target and Current Angle State (in Radians)
-    const joints = {
-      j1: { current: 0, target: 0, min: -Math.PI, max: Math.PI },
-      j2: { current: 0, target: 0.3, min: -1.2, max: 1.5 },
-      j3: { current: 0, target: -0.6, min: -2.0, max: 1.5 },
-      j4: { current: 0, target: 0.3, min: -1.8, max: 1.8 },
-      j5: { current: 0, target: 0, min: -Math.PI, max: Math.PI },
-      j6_open: { current: 0.04, target: 0.04, min: 0.02, max: 0.12 } // Finger separation
+    // Distinctive High-Tech Anodized PBR Materials
+    const materialLibrary = {
+      base: new THREE.MeshStandardMaterial({ color: 0x181e29, roughness: 0.35, metalness: 0.85 }),
+      turntable: new THREE.MeshStandardMaterial({ color: 0x222a38, roughness: 0.3, metalness: 0.9 }),
+      armOrange: new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.35, metalness: 0.55 }),
+      armDark: new THREE.MeshStandardMaterial({ color: 0x141822, roughness: 0.4, metalness: 0.8 }),
+      chromeWrist: new THREE.MeshStandardMaterial({ color: 0xd0d7de, roughness: 0.15, metalness: 0.95 }),
+      movingJaw: new THREE.MeshStandardMaterial({ color: 0x00d2ff, roughness: 0.25, metalness: 0.7, emissive: 0x002a40 }),
+      cameraSensor: new THREE.MeshStandardMaterial({ color: 0x0f131a, roughness: 0.5, metalness: 0.7 })
     };
 
-    // Preset Arm Poses for Presentation
+    function applyAMArmMaterials(robot) {
+      robot.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+
+          const meshName = (child.name || '').toLowerCase();
+          const parentName = (child.parent ? child.parent.name : '').toLowerCase();
+          const idStr = meshName + ' ' + parentName;
+
+          let mat = materialLibrary.armOrange;
+          if (idStr.includes('base')) {
+            mat = materialLibrary.base;
+          } else if (idStr.includes('rotation') || idStr.includes('pitch')) {
+            mat = materialLibrary.turntable;
+          } else if (idStr.includes('lower')) {
+            mat = materialLibrary.armDark;
+          } else if (idStr.includes('wrist_pitch') || idStr.includes('wrist_flex')) {
+            mat = materialLibrary.chromeWrist;
+          } else if (idStr.includes('wrist_yaw')) {
+            mat = materialLibrary.armOrange;
+          } else if (idStr.includes('fixed_jaw')) {
+            mat = materialLibrary.armDark;
+          } else if (idStr.includes('moving_jaw')) {
+            mat = materialLibrary.movingJaw;
+          } else if (idStr.includes('camera')) {
+            mat = materialLibrary.cameraSensor;
+          }
+
+          child.material = mat;
+          if (!robotMaterialsList.includes(mat)) {
+            robotMaterialsList.push(mat);
+          }
+        }
+      });
+    }
+
+    // 7 Joints of the AM-ARM200
+    const jointState = {
+      j1: { urdfName: 'left_shoulder_pan', current: 0, target: 0, min: -3.14, max: 3.14, name: 'Shoulder Pan' },
+      j2: { urdfName: 'left_shoulder_lift', current: 0, target: 0, min: -3.14, max: 3.14, name: 'Shoulder Lift' },
+      j3: { urdfName: 'left_elbow_flex', current: 0, target: 0, min: -3.14, max: 3.14, name: 'Elbow Flex' },
+      j4: { urdfName: 'left_wrist_flex', current: 0, target: 0, min: -3.14, max: 3.14, name: 'Wrist Flex' },
+      j5: { urdfName: 'left_wrist_yaw_joint', current: 0, target: 0, min: -3.14, max: 3.14, name: 'Wrist Yaw' },
+      j6: { urdfName: 'left_wrist_roll', current: 0, target: 0, min: -3.14, max: 3.14, name: 'Wrist Roll' },
+      j7: { urdfName: 'left_gripper', current: 0, target: 0, min: -3.14, max: 3.14, name: 'Gripper' }
+    };
+
+    // Preset Poses for 7-DOF AM-ARM200 (Reversed Elbow Flex Direction: j3 positive)
     const PRESET_POSES = {
-      0: { name: "HOME / REST", j1: 0, j2: 0.3, j3: -0.6, j4: 0.3, j5: 0, j6: 0.03 },
-      1: { name: "REACH FORWARD (PICK)", j1: 0, j2: 0.85, j3: -0.9, j4: 0.1, j5: 0, j6: 0.12 },
-      2: { name: "UPWARD LIFT (CARRY)", j1: 0.2, j2: -0.2, j3: -0.4, j4: 0.6, j5: 0, j6: 0.03 },
-      3: { name: "SIDE DROP (PLACE)", j1: -1.57, j2: 0.7, j3: -0.8, j4: 0.2, j5: 1.57, j6: 0.12 },
-      4: { name: "HIGH INSPECTION", j1: 1.2, j2: -0.5, j3: -0.2, j4: -0.3, j5: 0.8, j6: 0.06 },
-      5: { name: "WAVE / DEMO EXTEND", j1: 0, j2: 0.1, j3: 0.2, j4: 0.2, j5: 1.57, j6: 0.12 }
+      0: { name: "HOME / STANDBY", j1: 0, j2: 0, j3: 0, j4: 0, j5: 0, j6: 0, j7: 0 },
+      1: { name: "REACH FORWARD (PICK)", j1: 0, j2: 0.65, j3: 0.9, j4: 0.25, j5: 0, j6: 0, j7: 0.9 },
+      2: { name: "UPWARD LIFT (CARRY)", j1: 0, j2: -0.4, j3: 0.5, j4: 0.7, j5: 0, j6: 0, j7: 0.1 },
+      3: { name: "SIDE DEPOSIT (LEFT)", j1: 1.57, j2: 0.5, j3: 0.8, j4: 0.3, j5: 0, j6: 0, j7: 0.8 },
+      4: { name: "SIDE DEPOSIT (RIGHT)", j1: -1.57, j2: 0.5, j3: 0.8, j4: 0.3, j5: 0, j6: 0, j7: 0.8 },
+      5: { name: "HIGH OVERHEAD REACH", j1: 0, j2: -0.9, j3: 0.3, j4: -0.4, j5: 0.8, j6: 1.2, j7: 0.2 },
+      6: { name: "WRIST ROLL (2-HAND: 5+1)", j1: 0.3, j2: 0.3, j3: 0.6, j4: 0.4, j5: -0.8, j6: 2.2, j7: 0.4 },
+      7: { name: "GRIPPER CLAMP (2-HAND: 5+2)", j1: 0, j2: 0.7, j3: 0.9, j4: 0.2, j5: 0, j6: 0, j7: 1.4 }
     };
 
     let currentMode = 'preset'; // 'preset' or 'joint'
-    let selectedJointIdx = 1;
 
+    // Initialize LoadingManager
+    const loadingManager = new THREE.LoadingManager();
+    loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+      const pct = Math.round((itemsLoaded / itemsTotal) * 100);
+      document.getElementById('loading-subtext').textContent = `Loading AM-ARM200 Mesh (${pct}%)...`;
+    };
+
+    loadingManager.onLoad = function() {
+      document.getElementById('loading-indicator').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('loading-indicator').style.display = 'none';
+      }, 400);
+    };
+
+    // Load URDF
+    const urdfLoader = new URDFLoader(loadingManager);
+    urdfLoader.packages = {
+      'am-arm200': './am-arm200'
+    };
+
+    urdfLoader.load('./am-arm200/urdf/am-arm200.urdf', robot => {
+      robotArm = robot;
+
+      // AM-ARM200 URDF coordinate orientation:
+      // Rotate -90 deg on X so Z-up becomes Y-up
+      robotArm.rotation.x = -Math.PI / 2;
+      robotArm.position.set(0, 0, 0);
+
+      // Scale appropriately for studio scene
+      robotArm.scale.set(3.2, 3.2, 3.2);
+
+      // Apply PBR Materials
+      applyAMArmMaterials(robotArm);
+
+      scene.add(robotArm);
+      console.log("[✓] AM-ARM200 loaded with joints:", Object.keys(robotArm.joints));
+      applyGestureAction(0); // Initialize at Home pose
+    }, undefined, err => {
+      console.error("[!] Error loading AM-ARM200 URDF:", err);
+      document.getElementById('loading-subtext').textContent = "Failed to load URDF. Ensure server.py is running.";
+    });
+
+    // ==========================================
+    // 3. CONTROL LOGIC & DUAL-HAND GESTURE MAPPER
+    // ==========================================
     function setMode(mode) {
       currentMode = mode;
       document.getElementById('btn-mode-preset').classList.toggle('active', mode === 'preset');
@@ -765,92 +752,116 @@
       const guide = document.getElementById('guide-text');
       if (mode === 'preset') {
         guide.innerHTML = `
-          <b>Pose Mode Gestures:</b><br>
-          • <b>0 (Fist):</b> Home / Standby<br>
+          <b>1 Hand Gestures (1-5):</b><br>
+          • <b>0:</b> Home / Standby<br>
           • <b>1:</b> Forward Reach (Pick)<br>
           • <b>2:</b> Upward Lift (Carry)<br>
-          • <b>3:</b> Side Placement (Drop)<br>
-          • <b>4:</b> High Inspection<br>
-          • <b>5:</b> Open Gripper Wave
+          • <b>3:</b> Side Deposit (Left)<br>
+          • <b>4:</b> Side Deposit (Right)<br>
+          • <b>5:</b> High Overhead Reach<br>
+          <b>2 Hands Gestures (6-7):</b><br>
+          • <b>6 (5+1):</b> Wrist Roll Orientation<br>
+          • <b>7 (5+2):</b> Gripper Clamp & Release
         `;
       } else {
         guide.innerHTML = `
-          <b>Joint Mode Gestures:</b><br>
-          • <b>1 Finger:</b> Select & Sweep J1 (Base)<br>
-          • <b>2 Fingers:</b> Select & Move J2 (Shoulder)<br>
-          • <b>3 Fingers:</b> Select & Move J3 (Elbow)<br>
-          • <b>4 Fingers:</b> Select & Move J4 (Wrist)<br>
-          • <b>5 Fingers:</b> Open Gripper Full<br>
-          • <b>0 (Fist):</b> Clamp Gripper Tight
+          <b>Joint Select Mode:</b><br>
+          • <b>1:</b> J1 Shoulder Pan<br>
+          • <b>2:</b> J2 Shoulder Lift<br>
+          • <b>3:</b> J3 Elbow Flex<br>
+          • <b>4:</b> J4 Wrist Flex<br>
+          • <b>5:</b> J5 Wrist Yaw<br>
+          • <b>6 (2 Hands: 5+1):</b> J6 Wrist Roll<br>
+          • <b>7 (2 Hands: 5+2):</b> J7 Gripper Jaw<br>
+          • <b>0 (Fist):</b> Reset / Neutral
         `;
       }
     }
 
-    function applyGestureAction(numFingers) {
+    let activeGestureState = -1;
+
+    function applyGestureAction(numFingers, numHands = 1, h1Count = 0, h2Count = 0) {
       const dispCount = document.getElementById('disp-count');
       const dispAction = document.getElementById('disp-action');
+      const dispHands = document.getElementById('disp-hands');
+
       dispCount.textContent = numFingers;
+
+      if (numHands === 2) {
+        dispHands.textContent = `2 HANDS (${h1Count} + ${h2Count} = ${numFingers})`;
+        dispHands.style.color = "var(--accent-orange)";
+      } else {
+        dispHands.textContent = `1 HAND (${numFingers} FINGERS)`;
+        dispHands.style.color = "var(--accent)";
+      }
+
+      // Reset active highlights
+      for (let i = 1; i <= 7; i++) {
+        document.getElementById(`gauge-j${i}`).classList.remove('active');
+      }
 
       if (currentMode === 'preset') {
         const pose = PRESET_POSES[numFingers] || PRESET_POSES[0];
         dispAction.textContent = pose.name;
 
-        joints.j1.target = pose.j1;
-        joints.j2.target = pose.j2;
-        joints.j3.target = pose.j3;
-        joints.j4.target = pose.j4;
-        joints.j5.target = pose.j5;
-        joints.j6_open.target = pose.j6;
+        jointState.j1.target = pose.j1;
+        jointState.j2.target = pose.j2;
+        jointState.j3.target = pose.j3; // Positive = reversed natural elbow flex
+        jointState.j4.target = pose.j4;
+        jointState.j5.target = pose.j5;
+        jointState.j6.target = pose.j6;
+        jointState.j7.target = pose.j7;
 
-        // Highlight active status
-        for (let i = 1; i <= 6; i++) {
-          document.getElementById(`gauge-j${i}`).classList.remove('active');
+        if (numFingers >= 1 && numFingers <= 7) {
+          document.getElementById(`gauge-j${numFingers}`).classList.add('active');
         }
       } else {
-        // Joint Select Mode: Active joint is chosen by finger count
-        for (let i = 1; i <= 6; i++) {
-          document.getElementById(`gauge-j${i}`).classList.remove('active');
-        }
-
+        // Individual Joint Actuation Mode (Fixed stable setpoints - NO OSCILLATION)
         if (numFingers === 0) {
-          dispAction.textContent = "CLAMP GRIPPER (CLOSE)";
-          joints.j6_open.target = 0.02;
-          document.getElementById('gauge-j6').classList.add('active');
-        } else if (numFingers === 5) {
-          dispAction.textContent = "OPEN GRIPPER (WIDE)";
-          joints.j6_open.target = 0.12;
-          document.getElementById('gauge-j6').classList.add('active');
-        } else {
-          const jointKey = `j${numFingers}`;
+          dispAction.textContent = "RETURN TO STANDBY (ALL NEUTRAL)";
+          for (let i = 1; i <= 7; i++) {
+            jointState[`j${i}`].target = 0;
+          }
+        } else if (numFingers >= 1 && numFingers <= 7) {
           document.getElementById(`gauge-j${numFingers}`).classList.add('active');
 
           if (numFingers === 1) {
-            dispAction.textContent = "ROTATE BASE (J1)";
-            joints.j1.target = (joints.j1.target > 0) ? -1.2 : 1.2;
+            dispAction.textContent = "ACTUATE J1 (SHOULDER PAN)";
+            jointState.j1.target = 1.2;
           } else if (numFingers === 2) {
-            dispAction.textContent = "ACTUATE SHOULDER (J2)";
-            joints.j2.target = (joints.j2.target > 0.4) ? -0.3 : 0.8;
+            dispAction.textContent = "ACTUATE J2 (SHOULDER LIFT)";
+            jointState.j2.target = 0.7;
           } else if (numFingers === 3) {
-            dispAction.textContent = "ACTUATE ELBOW (J3)";
-            joints.j3.target = (joints.j3.target < -0.8) ? 0.3 : -1.2;
+            dispAction.textContent = "ACTUATE J3 (ELBOW FLEX REVERSED)";
+            jointState.j3.target = 0.9; // Reversed flex direction
           } else if (numFingers === 4) {
-            dispAction.textContent = "PITCH WRIST (J4)";
-            joints.j4.target = (joints.j4.target > 0.2) ? -0.8 : 0.8;
+            dispAction.textContent = "ACTUATE J4 (WRIST FLEX)";
+            jointState.j4.target = 0.7;
+          } else if (numFingers === 5) {
+            dispAction.textContent = "ACTUATE J5 (WRIST YAW)";
+            jointState.j5.target = 1.0;
+          } else if (numFingers === 6) {
+            dispAction.textContent = "ACTUATE J6 (WRIST ROLL)";
+            jointState.j6.target = 2.0;
+          } else if (numFingers === 7) {
+            dispAction.textContent = "ACTUATE J7 (GRIPPER OPEN)";
+            jointState.j7.target = 1.4;
           }
         }
       }
     }
 
     function resetToHome() {
+      activeGestureState = 0;
       applyGestureAction(0);
     }
 
     function toggleWireframe() {
-      robotMaterials.forEach(m => m.wireframe = !m.wireframe);
+      robotMaterialsList.forEach(m => m.wireframe = !m.wireframe);
     }
 
     // ==========================================
-    // 3. MEDIAPIPE / OPENCV WEBCAM HAND TRACKER
+    // 4. PRECISION COMPUTER VISION & DEBOUNCE
     // ==========================================
     const videoElement = document.getElementById('webcam');
     const canvasElement = document.getElementById('cam-canvas');
@@ -859,36 +870,74 @@
     let cameraInstance = null;
     let isWebcamRunning = true;
 
+    // Rolling window filter for rock-solid stability
+    const GESTURE_HISTORY_LEN = 6;
+    const gestureHistory = [];
+
+    function getStableGesture(rawCount) {
+      gestureHistory.push(rawCount);
+      if (gestureHistory.length > GESTURE_HISTORY_LEN) {
+        gestureHistory.shift();
+      }
+
+      const freqMap = {};
+      for (const val of gestureHistory) {
+        freqMap[val] = (freqMap[val] || 0) + 1;
+      }
+
+      let candidate = rawCount;
+      let maxFreq = 0;
+      for (const [val, count] of Object.entries(freqMap)) {
+        if (count > maxFreq) {
+          maxFreq = count;
+          candidate = parseInt(val);
+        }
+      }
+
+      // Require consensus (at least 4 out of 6 frames) to switch
+      if (maxFreq >= 4) {
+        return candidate;
+      }
+      return activeGestureState;
+    }
+
     function countFingers(landmarks) {
       if (!landmarks || landmarks.length < 21) return 0;
       let count = 0;
 
-      // Finger Tips and PIP Joints
-      // Thumb: 4 (tip), 2 (MCP)
-      // Index: 8 (tip), 6 (PIP)
-      // Middle: 12 (tip), 10 (PIP)
-      // Ring: 16 (tip), 14 (PIP)
-      // Pinky: 20 (tip), 18 (PIP)
+      // Index MCP (5) vs Pinky MCP (17) tells us if thumb points left or right
+      const isThumbSideLeft = landmarks[5].x < landmarks[17].x;
+      const thumbTip = landmarks[4];
+      const thumbIP = landmarks[3];
+      const thumbMCP = landmarks[2];
 
-      // Thumb check: compare tip x vs IP joint x based on wrist side
-      const isRightHand = landmarks[17].x > landmarks[5].x;
-      if (isRightHand) {
-        if (landmarks[4].x < landmarks[3].x) count++;
+      // Thumb is extended ONLY when tip is clearly projected outward past IP & MCP
+      if (isThumbSideLeft) {
+        if (thumbTip.x < thumbIP.x - 0.025 && thumbTip.x < thumbMCP.x) {
+          count++;
+        }
       } else {
-        if (landmarks[4].x > landmarks[3].x) count++;
+        if (thumbTip.x > thumbIP.x + 0.025 && thumbTip.x > thumbMCP.x) {
+          count++;
+        }
       }
 
-      // 4 Fingers check: Y coordinate of Tip must be above (less than) PIP Joint
-      if (landmarks[8].y < landmarks[6].y) count++;   // Index
-      if (landmarks[12].y < landmarks[10].y) count++; // Middle
-      if (landmarks[16].y < landmarks[14].y) count++; // Ring
-      if (landmarks[20].y < landmarks[18].y) count++; // Pinky
+      // 4 Fingers: Check if tip Y is distinctly above PIP and PIP is above MCP
+      const fingers = [
+        { tip: 8, pip: 6, mcp: 5 },   // Index
+        { tip: 12, pip: 10, mcp: 9 }, // Middle
+        { tip: 16, pip: 14, mcp: 13 },// Ring
+        { tip: 20, pip: 18, mcp: 17 } // Pinky
+      ];
+
+      for (const f of fingers) {
+        if (landmarks[f.tip].y < landmarks[f.pip].y - 0.02 && landmarks[f.pip].y < landmarks[f.mcp].y + 0.04) {
+          count++;
+        }
+      }
 
       return count;
     }
-
-    let lastDetectedFingerCount = -1;
-    let stableFrameCount = 0;
 
     function onHandResults(results) {
       canvasElement.width = videoElement.videoWidth || 320;
@@ -897,45 +946,60 @@
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const landmarks = results.multiHandLandmarks[0];
+      const numHands = (results.multiHandLandmarks && results.multiHandLandmarks.length) || 0;
 
-        // Draw custom high-tech landmark nodes & connections
-        drawHandSkeletal(landmarks, canvasCtx, canvasElement.width, canvasElement.height);
+      if (numHands > 0) {
+        let h1Count = 0;
+        let h2Count = 0;
 
-        const fingers = countFingers(landmarks);
+        // Process Hand 1
+        const lm1 = results.multiHandLandmarks[0];
+        h1Count = countFingers(lm1);
+        drawHandSkeletal(lm1, canvasCtx, canvasElement.width, canvasElement.height, '#00d2ff', '#ffffff');
 
-        // Stabilize gesture debounce (require 3 consistent frames to switch)
-        if (fingers === lastDetectedFingerCount) {
-          stableFrameCount++;
-          if (stableFrameCount === 3) {
-            applyGestureAction(fingers);
-          }
-        } else {
-          lastDetectedFingerCount = fingers;
-          stableFrameCount = 0;
+        // Process Hand 2 (if present)
+        if (numHands > 1) {
+          const lm2 = results.multiHandLandmarks[1];
+          h2Count = countFingers(lm2);
+          drawHandSkeletal(lm2, canvasCtx, canvasElement.width, canvasElement.height, '#ff9100', '#ffd180');
         }
 
-        camStatus.textContent = `HAND DETECTED: ${fingers} FINGERS`;
-        camStatus.style.color = "#00d2ff";
+        let rawTotal = (numHands === 1) ? h1Count : (h1Count + h2Count);
+        if (rawTotal > 7) rawTotal = 7;
+
+        // Anti-vibration temporal majority filter
+        const stableGesture = getStableGesture(rawTotal);
+
+        if (stableGesture !== activeGestureState) {
+          activeGestureState = stableGesture;
+          applyGestureAction(stableGesture, numHands, h1Count, h2Count);
+        }
+
+        if (numHands === 1) {
+          camStatus.textContent = `1 HAND: ${h1Count} FINGERS`;
+          camStatus.style.color = "#00d2ff";
+        } else {
+          camStatus.textContent = `2 HANDS: (${h1Count} + ${h2Count}) = ${stableGesture} FINGERS`;
+          camStatus.style.color = "#ff9100";
+        }
       } else {
-        camStatus.textContent = "WAITING FOR HAND GESTURE...";
+        camStatus.textContent = "WAITING FOR HAND GESTURES...";
         camStatus.style.color = "#94a3b8";
       }
       canvasCtx.restore();
     }
 
-    function drawHandSkeletal(landmarks, ctx, width, height) {
+    function drawHandSkeletal(landmarks, ctx, width, height, lineColor, nodeColor) {
       const connections = [
-        [0,1],[1,2],[2,3],[3,4], // Thumb
-        [0,5],[5,6],[6,7],[7,8], // Index
-        [0,9],[9,10],[10,11],[11,12], // Middle
-        [0,13],[13,14],[14,15],[15,16], // Ring
-        [0,17],[17,18],[18,19],[19,20], // Pinky
-        [5,9],[9,13],[13,17] // Palm
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [0,9],[9,10],[10,11],[11,12],
+        [0,13],[13,14],[14,15],[15,16],
+        [0,17],[17,18],[18,19],[19,20],
+        [5,9],[9,13],[13,17]
       ];
 
-      ctx.strokeStyle = '#00d2ff';
+      ctx.strokeStyle = lineColor;
       ctx.lineWidth = 2.5;
 
       connections.forEach(([i, j]) => {
@@ -948,20 +1012,20 @@
       landmarks.forEach((pt, idx) => {
         ctx.beginPath();
         ctx.arc(pt.x * width, pt.y * height, idx % 4 === 0 ? 5 : 3.5, 0, 2 * Math.PI);
-        ctx.fillStyle = (idx === 4 || idx === 8 || idx === 12 || idx === 16 || idx === 20) ? '#ff9100' : '#ffffff';
+        ctx.fillStyle = (idx === 4 || idx === 8 || idx === 12 || idx === 16 || idx === 20) ? '#ff9100' : nodeColor;
         ctx.fill();
         ctx.strokeStyle = '#000000';
         ctx.stroke();
       });
     }
 
-    // Initialize MediaPipe Hands
+    // MediaPipe Hands setup with Dual Hand Tracking (maxNumHands: 2)
     const hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
 
     hands.setOptions({
-      maxNumHands: 1,
+      maxNumHands: 2, // Enable 2 Hands detection
       modelComplexity: 1,
       minDetectionConfidence: 0.65,
       minTrackingConfidence: 0.6
@@ -969,7 +1033,7 @@
 
     hands.onResults(onHandResults);
 
-    // Initialize Camera
+    // Initialize Camera Feed
     cameraInstance = new Camera(videoElement, {
       onFrame: async () => {
         if (isWebcamRunning) {
@@ -980,14 +1044,10 @@
       height: 360
     });
 
-    cameraInstance.start().then(() => {
-      document.getElementById('loading-indicator').style.opacity = '0';
-      setTimeout(() => document.getElementById('loading-indicator').style.display = 'none', 500);
-    }).catch(err => {
-      console.warn("Webcam access error / fallback to manual controls:", err);
-      camStatus.textContent = "NO WEBCAM (USE KEYS 0-5)";
+    cameraInstance.start().catch(err => {
+      console.warn("Webcam fallback to keyboard controls:", err);
+      camStatus.textContent = "NO WEBCAM (USE KEYS 0-7)";
       camStatus.style.color = "#ff9100";
-      document.getElementById('loading-indicator').style.display = 'none';
     });
 
     function toggleWebcam() {
@@ -1002,11 +1062,11 @@
     }
 
     // ==========================================
-    // 4. PRESENTATION KEYBOARD FALLBACK (0 - 5)
+    // 5. PRESENTATION KEYBOARD OVERRIDE (0-7)
     // ==========================================
     window.addEventListener('keydown', (e) => {
-      if (['0','1','2','3','4','5'].includes(e.key)) {
-        applyGestureAction(parseInt(e.key));
+      if (['0','1','2','3','4','5','6','7'].includes(e.key)) {
+        applyGestureAction(parseInt(e.key), parseInt(e.key) > 5 ? 2 : 1);
       }
       if (e.key.toLowerCase() === 'm') {
         setMode(currentMode === 'preset' ? 'joint' : 'preset');
@@ -1017,7 +1077,7 @@
     });
 
     // ==========================================
-    // 5. ANIMATION LOOP & KINEMATICS INTERPOLATION
+    // 6. ANIMATION LOOP & SMOOTH INTERPOLATION
     // ==========================================
     let lastTime = performance.now();
     let frameCount = 0;
@@ -1026,7 +1086,7 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      // FPS calculation
+      // FPS Counter
       frameCount++;
       const now = performance.now();
       if (now - lastTime >= 1000) {
@@ -1035,29 +1095,21 @@
         lastTime = now;
       }
 
-      // Smooth Kinematic Interpolation (Lerp)
+      // Smooth Kinematic Interpolation (Lerp) with snap threshold to eliminate vibration
       const lerpFactor = 0.08;
-      joints.j1.current += (joints.j1.target - joints.j1.current) * lerpFactor;
-      joints.j2.current += (joints.j2.target - joints.j2.current) * lerpFactor;
-      joints.j3.current += (joints.j3.target - joints.j3.current) * lerpFactor;
-      joints.j4.current += (joints.j4.target - joints.j4.current) * lerpFactor;
-      joints.j5.current += (joints.j5.target - joints.j5.current) * lerpFactor;
-      joints.j6_open.current += (joints.j6_open.target - joints.j6_open.current) * lerpFactor;
+      for (const [key, jInfo] of Object.entries(jointState)) {
+        const delta = jInfo.target - jInfo.current;
+        if (Math.abs(delta) < 0.001) {
+          jInfo.current = jInfo.target;
+        } else {
+          jInfo.current += delta * lerpFactor;
+        }
+        if (robotArm && robotArm.joints[jInfo.urdfName]) {
+          robotArm.setJointValue(jInfo.urdfName, jInfo.current);
+        }
+      }
 
-      // Apply to 3D Nodes
-      j1_turntable.rotation.y = joints.j1.current;
-      j2_shoulder.rotation.z = joints.j2.current;
-      j3_elbow.rotation.z = joints.j3.current;
-      j4_wristPitch.rotation.z = joints.j4.current;
-      j5_wristRoll.rotation.y = joints.j5.current;
-
-      // Parallel Gripper separation
-      fingerLeft.position.x = -joints.j6_open.current;
-      fingerRight.position.x = joints.j6_open.current;
-
-      // Update UI Telemetry Bars & Angles
       updateTelemetryUI();
-
       controls.update();
       renderer.render(scene, camera);
     }
@@ -1067,32 +1119,32 @@
     }
 
     function updateTelemetryUI() {
-      document.getElementById('val-j1').textContent = radToDeg(joints.j1.current) + '°';
-      document.getElementById('val-j2').textContent = radToDeg(joints.j2.current) + '°';
-      document.getElementById('val-j3').textContent = radToDeg(joints.j3.current) + '°';
-      document.getElementById('val-j4').textContent = radToDeg(joints.j4.current) + '°';
-      document.getElementById('val-j5').textContent = radToDeg(joints.j5.current) + '°';
-      document.getElementById('val-j6').textContent = joints.j6_open.current > 0.07 ? 'OPEN' : 'CLAMPED';
+      for (let i = 1; i <= 7; i++) {
+        const jInfo = jointState[`j${i}`];
+        const valElem = document.getElementById(`val-j${i}`);
+        const barElem = document.getElementById(`bar-j${i}`);
 
-      // Bar percentages
-      document.getElementById('bar-j1').style.width = ((joints.j1.current + Math.PI) / (2 * Math.PI) * 100) + '%';
-      document.getElementById('bar-j2').style.width = ((joints.j2.current + 1.2) / 2.7 * 100) + '%';
-      document.getElementById('bar-j3').style.width = ((joints.j3.current + 2.0) / 3.5 * 100) + '%';
-      document.getElementById('bar-j4').style.width = ((joints.j4.current + 1.8) / 3.6 * 100) + '%';
-      document.getElementById('bar-j5').style.width = ((joints.j5.current + Math.PI) / (2 * Math.PI) * 100) + '%';
-      document.getElementById('bar-j6').style.width = ((joints.j6_open.current - 0.02) / 0.1 * 100) + '%';
+        if (i === 7) {
+          valElem.textContent = jInfo.current > 0.4 ? 'OPEN' : 'CLAMPED';
+        } else {
+          valElem.textContent = radToDeg(jInfo.current) + '°';
+        }
+
+        // Percentage fill calculation
+        const pct = ((jInfo.current - jInfo.min) / (jInfo.max - jInfo.min)) * 100;
+        barElem.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      }
     }
 
-    // Window Resize Handling
+    // Resize Handler
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Start Animation Loop
+    // Start loop
     animate();
-    applyGestureAction(0); // Initialize at Home pose
   </script>
 </body>
 </html>

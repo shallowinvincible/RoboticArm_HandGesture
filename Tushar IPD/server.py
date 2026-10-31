@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-3D Robotic Arm Hand Gesture Controller Server
----------------------------------------------
-Zero-dependency Python server that launches the 3D Robotic Arm
-simulation and hand gesture vision interface in your browser.
+AM-ARM200 (7-DOF) Robotic Arm Hand Gesture Controller Server
+-----------------------------------------------------------
+Zero-dependency Python server that launches the AM-ARM200 3D URDF
+simulation and dual-hand gesture vision interface in your browser.
 """
 
 import http.server
@@ -20,31 +20,33 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
     def log_message(self, format, *args):
-        # Clean terminal output
         sys.stderr.write(f"[Server] {args[0]} - {args[1]}\n")
 
 def run():
     os.chdir(DIRECTORY)
-    # Allow port reuse so restarting works instantly
     socketserver.TCPServer.allow_reuse_address = True
     
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         url = f"http://localhost:{PORT}/index.html"
-        print("=" * 60)
-        print("🤖 3D ROBOTIC ARM GESTURE CONTROLLER")
-        print("=" * 60)
+        print("=" * 65)
+        print("🤖 AM-ARM200 (7-DOF) ROBOTIC ARM GESTURE CONTROLLER")
+        print("=" * 65)
         print(f"[*] Serving locally at: {url}")
         print("[*] Opening your web browser automatically...")
         print("[*] Press Ctrl+C to stop the server.")
-        print("=" * 60)
-        print("\n💡 PRESENTATION CHEAT SHEET:")
-        print("  • Show 1 finger : Pick Pose / Base Joint")
-        print("  • Show 2 fingers: Carry Pose / Shoulder Joint")
-        print("  • Show 3 fingers: Place Pose / Elbow Joint")
-        print("  • Show 4 fingers: High Inspection / Wrist")
-        print("  • Show 5 fingers: Open Gripper / Wave")
-        print("  • Closed fist (0): Home / Standby position")
-        print("  • Keys 0-5 on keyboard also trigger poses directly!\n")
+        print("=" * 65)
+        print("\n💡 GESTURE CONTROLS CHEAT SHEET:")
+        print("  --- 1 HAND GESTURES ---")
+        print("  • Fist (0)     : Standby / Home neutral pose")
+        print("  • 1 Finger     : J1 Shoulder Pan (Base Yaw)")
+        print("  • 2 Fingers    : J2 Shoulder Lift (Boom Pitch)")
+        print("  • 3 Fingers    : J3 Elbow Flex (Forearm)")
+        print("  • 4 Fingers    : J4 Wrist Flex (Pitch)")
+        print("  • 5 Fingers    : J5 Wrist Yaw (Swivel)")
+        print("  --- 2 HANDS GESTURES ---")
+        print("  • 6 (5 + 1)    : J6 Wrist Roll (Tool Flange Rotation)")
+        print("  • 7 (5 + 2)    : J7 Gripper Jaw (Moving Jaw Clamp/Open)")
+        print("  • Keys 0-7 on keyboard also trigger joints/poses directly!\n")
         
         try:
             webbrowser.open(url)

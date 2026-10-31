@@ -1,6 +1,6 @@
-# 🤖 3D Robotic Arm Hand Gesture Controller
+# 🤖 AM-ARM200 (7-DOF) Robotic Arm Hand Gesture Controller
 
-A real-time, interactive **6-DOF Robotic Arm 3D Simulation** controlled directly via **OpenCV & Computer Vision Hand Gestures** (detecting finger counts 1, 2, 3, 4, 5, and closed fist 0).
+A real-time, interactive **7-DOF AM-ARM200 Robotic Arm Simulation** powered by its official **URDF & 3D STL meshes** (from [liyiteng/AM-ARM](https://github.com/liyiteng/AM-ARM.git)), controlled directly via **Computer Vision Dual-Hand Gestures** (supporting 1-hand gestures `0-5` and 2-hand gestures `6-7`).
 
 Designed for **instant portability, zero ROS/ROS2 headaches**, and foolproof presentations.
 
@@ -19,82 +19,70 @@ cd "Tushar IPD"
 
 ---
 
-### Step 2: Install Dependencies
-Install all required libraries using `requirements.txt`:
+### Step 2: Install Dependencies (Optional for Python Script)
+The web simulation runs locally with **zero external pip dependencies**, but if you want to run the standalone OpenCV Python script:
 
 * **On macOS / Linux:**
   ```bash
   pip3 install -r requirements.txt
   ```
-  *(or `pip install -r requirements.txt`)*
 
 * **On Windows:**
   ```bash
   pip install -r requirements.txt
   ```
 
-> 💡 **Tip:** If you prefer using a virtual environment:
-> ```bash
-> # Create virtual environment
-> python3 -m venv .venv
-> 
-> # Activate it:
-> source .venv/bin/activate        # macOS / Linux
-> .venv\Scripts\activate           # Windows
-> 
-> # Install:
-> pip install -r requirements.txt
-> ```
-
 ---
 
-### Step 3: Run the Project
+### Step 3: Launch the Project
 
-You can run either of the following commands:
+Run either of the following commands:
 
 * **On macOS / Linux:**
   ```bash
-  python3 server.py
+  python3 main.py
   ```
-  *(or `python3 main.py`)*
+  *(or `python3 server.py`)*
 
 * **On Windows:**
   ```bash
-  python server.py
+  python main.py
   ```
-  *(or `python main.py`)*
+  *(or `python server.py`)*
 
-Your default web browser will automatically open at `http://localhost:8000/index.html` featuring:
-1. **Interactive 3D Articulated Robotic Arm** with realistic materials and shadows.
-2. **Live Webcam Hand Tracking** with real-time skeletal detection and finger counting.
-3. **Joint Angle Gauges & Kinematics Telemetry** showing real-time joint positions in degrees.
+Your browser will automatically open at `http://localhost:8000/index.html` displaying:
+1. **Official AM-ARM200 3D URDF Kinematic Model** rendered with realistic PBR materials, shadows, and grid floor.
+2. **Live Dual-Hand Webcam Tracking** with skeletal visualization and real-time finger summation.
+3. **7-Axis Joint Angle Telemetry** showing real-time angles in degrees.
 
 *(When the browser prompts you for camera access, click **"Allow"**).*
 
 ---
 
-## 🎯 Gesture Controls Cheat Sheet
+## 🎯 Dual-Hand Gesture Mapping (7 Joints)
 
-Position your hand in front of your webcam. The vision pipeline counts extended fingers and translates them into kinematic commands:
+The vision pipeline tracks up to **2 hands simultaneously** using MediaPipe. It sums the extended fingers across both hands to command all 7 joints of the AM-ARM200:
 
-| Finger Count | Pose Name | Robotic Arm Action |
-| :---: | :--- | :--- |
-| **0 (Fist)** | **Home / Standby** | Returns all 6 joints to standard neutral position. |
-| **1 Finger** | **Forward Reach (Pick)** | Actuates Base Turntable & Shoulder forward toward target. |
-| **2 Fingers** | **Upward Lift (Carry)** | Elevates the boom to transport payload safely. |
-| **3 Fingers** | **Side Drop (Place)** | Sweeps Base Turntable 90° and rotates wrist to drop zone. |
-| **4 Fingers** | **High Inspection** | Extends forearm and tilts gripper upward for inspection. |
-| **5 Fingers** | **Open Gripper / Wave** | Opens parallel gripper jaws wide and executes demo wave. |
+| Gestures | Hands Used | Joint / Action | URDF Joint & Motion |
+| :---: | :---: | :--- | :--- |
+| **0 (Fist)** | 1 Hand | **Home / Standby** | Returns all 7 joints to neutral zero position. |
+| **1 Finger** | 1 Hand | **J1: Shoulder Pan** | `left_shoulder_pan` — Base turntable yaw sweep. |
+| **2 Fingers** | 1 Hand | **J2: Shoulder Lift** | `left_shoulder_lift` — Boom pitch elevation. |
+| **3 Fingers** | 1 Hand | **J3: Elbow Flex** | `left_elbow_flex` — Forearm articulation. |
+| **4 Fingers** | 1 Hand | **J4: Wrist Flex** | `left_wrist_flex` — Wrist pitch adjustment. |
+| **5 Fingers** | 1 Hand | **J5: Wrist Yaw** | `left_wrist_yaw_joint` — Lateral wrist swivel. |
+| **6 (5 + 1)** | **2 Hands** | **J6: Wrist Roll** | `left_wrist_roll` — Tool flange roll rotation. |
+| **7 (5 + 2)** | **2 Hands** | **J7: Gripper Jaw** | `left_gripper` — Moving jaw clamping and release. |
 
-> 💡 **Mode Switch:** Click the **"JOINT SELECT"** button at the top-left if you want each number (1, 2, 3, 4) to actuate individual joint motors (J1 Base, J2 Shoulder, J3 Elbow, J4 Wrist) one-by-one!
+> 💡 **Mode Switch:** Click the **"JOINT SELECT"** button at the top-left to toggle between coordinated multi-axis Preset Poses and moving individual joints (J1 to J7) one-by-one!
 
 ---
 
 ## 🛡️ Presentation Safety Net (Emergency Failsafe)
 
-During live presentations, room lighting or projector interference can occasionally affect webcams. **You have built-in safeguards so the presentation NEVER fails:**
+During live presentations, room lighting or camera permissions can occasionally be unpredictable. **You have built-in safeguards so the presentation NEVER fails:**
 
-1. **Direct Keyboard Override:** Press keys **`0`, `1`, `2`, `3`, `4`, `5`** on your keyboard to instantly trigger the exact same robotic kinematics without needing the webcam!
+1. **Direct Keyboard Override:** Press keys **`0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`** on your keyboard to instantly trigger each joint and pose without needing the webcam!
 2. **Key `M`**: Toggles between **Preset Pose Mode** and **Individual Joint Mode**.
 3. **Key `R`**: Instantly resets the arm to Home position.
 4. **Interactive 3D Camera:** Left-click + drag to rotate the 3D view, right-click to pan, scroll to zoom.
@@ -103,9 +91,9 @@ During live presentations, room lighting or projector interference can occasiona
 
 ## 🐍 Standalone Python OpenCV Window (Optional)
 
-If your professor or evaluator specifically asks: *"Can you show the raw OpenCV Python script?"*
+If your professor or evaluator specifically asks: *"Can you show the raw OpenCV Python code?"*
 
-Run the dedicated Python CV script:
+Run the dedicated dual-hand OpenCV script:
 ```bash
 # macOS / Linux
 python3 python_vision.py
@@ -114,30 +102,29 @@ python3 python_vision.py
 python python_vision.py
 ```
 This opens a native OpenCV window displaying:
-- Live 21-point hand landmark tracking.
-- Bounding box and real-time FPS counter.
-- Joint control signal dispatches in the terminal.
-
----
-
-## 📐 Common Viva / Presentation Questions
-
-### Q: Why not use raw CAD files directly?
-> **Answer:** *"CAD files (STEP / SLDASM) only contain static 3D geometry without kinematic joint hierarchies, rotation axes ($x, y, z$), or limit constraints. To make a robot move programmatically, the model must be articulated with parent-child joint transforms (like URDF or kinematic scene trees). Our simulation utilizes a 6-DOF kinematic tree with smooth interpolation (lerping) between target and current joint angles."*
-
-### Q: How does the hand gesture detection work?
-> **Answer:** *"The vision pipeline extracts 21 three-dimensional hand landmarks in real time. For the four fingers (Index, Middle, Ring, Pinky), it computes whether the tip landmark $Y$-coordinate is elevated above the PIP (Proximal Interphalangeal) joint. For the thumb, it verifies horizontal clearance against the MCP joint. The stabilized finger count is then mapped to joint coordinate trajectories."*
+- Real-time tracking of up to 2 hands simultaneously.
+- Individual and combined finger counts (`Hand 1: 5 | Hand 2: 2 -> Total: 7`).
+- Active AM-ARM200 joint dispatch telemetry and FPS counter.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-├── index.html          # High-performance 3D Robotic Arm (Three.js) & Vision HUD (MediaPipe)
-├── server.py           # Local HTTP server (launches browser automatically)
-├── main.py             # Convenient entry point alias
-├── python_vision.py    # Dedicated OpenCV Python implementation
-├── requirements.txt    # Pip dependency list (OpenCV, MediaPipe, NumPy)
-├── .gitignore          # Git exclusion rules
-└── README.md           # Documentation and step-by-step execution guide
+├── am-arm200/
+│   ├── urdf/
+│   │   └── am-arm200.urdf       # Official AM-ARM200 URDF kinematic description
+│   └── am-arm200-meshes/        # 9 official STL meshes (Base, Arms, Wrist, Gripper)
+├── libs/                        # Local offline Three.js, URDFLoader & STLLoader
+│   ├── three.min.js
+│   ├── OrbitControls.js
+│   ├── STLLoader.js
+│   └── URDFLoader.js
+├── index.html                   # 3D AM-ARM200 URDF Viewer & Dual-Hand Vision HUD
+├── server.py                    # Local HTTP server (launches browser automatically)
+├── main.py                      # 1-click entry point
+├── python_vision.py             # Dedicated dual-hand OpenCV Python implementation
+├── requirements.txt             # Pip dependency list (OpenCV, MediaPipe, NumPy)
+├── .gitignore                   # Git exclusion rules
+└── README.md                    # Documentation and step-by-step presentation guide
 ```
